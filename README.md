@@ -13,6 +13,7 @@ A lisp-like that can fit into your pocket
     (return int i) ; Yes you will have to specify a return type when returning
 )
 ```
+Note: the print function is not provided anywhere. It is assumed that the programmer added it after code generation.
 
 ## Why
 Choose Hue because:
