@@ -2,7 +2,7 @@
 A lisp-like that can fit into your pocket
 
 ## Example
-```
+```lisp
 (do
     (print "Hello there")
     (int i)
