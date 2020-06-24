@@ -1,0 +1,13 @@
+(do
+    (print "Hello there") ; Call function print
+    (int i) ; Create integer variable i
+    (set i (add 1 2 3)) ; In C that would be i = 1 + 2 + 3;
+    (if (do ; as an if condition you can use a do statement. other languages call this a lambda
+            (int x) ; Create integer variable x
+            (set x 3) ; Set x to 3
+            (return int x) ; Return x. Effectively the if condition is now 3
+         )
+        (print "If works") ; Call print inside the if statement
+    )
+    (return int i) ; Return i
+)
