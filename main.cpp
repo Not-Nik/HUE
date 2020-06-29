@@ -178,6 +178,13 @@ int main()
         return assert_do(expr.exprs.size() == 2, expr.exprs[0].x + "=" + gen_expr(expr.exprs[1]));
     });
 
+
+    overrulings.emplace("include", [](Expr expr)
+    {
+        functions.push_back("#include " + expr.exprs[0].x + "\n");
+        return assert_do(expr.exprs.size() == 1, "");
+    });
+
     overrulings.emplace("do", [](const Expr & expr)
     {
         std::string function_id = std::to_string(++function_counter);
