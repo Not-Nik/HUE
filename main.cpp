@@ -9,6 +9,7 @@ bool Throw(const std::string & s)
 #define assert(cond) (cond ? true : Throw("Assertion failed; line " + std::to_string(lex_pos.l) + " column " + std::to_string(lex_pos.c)))
 #define match(s, r) (assert((r ? read() : t) == s) ? s : "")
 #define assert_do(c, d) ((assert(c) ? d : ""))
+#define loop_exprs(d) for (auto & e : expr.exprs) d
 
 /// Structure used for all expressions
 /// This is the stuff the AST is made of
@@ -76,10 +77,8 @@ std::string read()
     {
         token += c;
         do
-        {
-            readChar();
-            token += c;
-        } while (c != '"');
+            token += readChar();
+        while (c != '"');
         readChar();
     }
     else
@@ -137,8 +136,7 @@ std::string gen_expr(Expr expr)
         if (overrulings.count(expr.x))
             return overrulings[expr.x](expr);
         std::string call_l = expr.x + "(";
-        for (const auto & e : expr.exprs)
-            call_l += gen_expr(e) + (e != expr.exprs.back() ? ", " : "");
+        loop_exprs(call_l += gen_expr(e) + (e != expr.exprs.back() ? ", " : ""));
         return call_l + ")";
     }
     else
@@ -152,15 +150,13 @@ std::string gen_expr(Expr expr)
 #define scope_overruling(name) overrulings.emplace(#name, [](Expr expr){ \
     std::string res = #name" (" + gen_expr(expr.exprs[0]) + "){"; \
     expr.exprs.erase(expr.exprs.begin()); \
-    for (const auto & e : expr.exprs) \
-        res += gen_expr(e) + ";"; \
+    loop_exprs(res += gen_expr(e) + ";"); \
     return res + "}"; \
 })
 
 #define operator_overruling(name, op) overrulings.emplace(#name, [](Expr expr) { \
     std::string res; \
-    for (auto e : expr.exprs) \
-        res += e.x + (e != expr.exprs.back() ? #op : ""); \
+    loop_exprs(res += e.x + (e != expr.exprs.back() ? #op : "")); \
     return res; \
 })
 
@@ -178,7 +174,6 @@ int main()
         return assert_do(expr.exprs.size() == 2, expr.exprs[0].x + "=" + gen_expr(expr.exprs[1]));
     });
 
-
     overrulings.emplace("include", [](Expr expr)
     {
         functions.push_back("#include " + expr.exprs[0].x + "\n");
@@ -190,8 +185,7 @@ int main()
         std::string function_id = std::to_string(++function_counter);
         std::string function = "f" + function_id + "()\n{";
 
-        for (const auto & e : expr.exprs)
-            function += gen_expr(e) + ";";
+        loop_exprs(function += gen_expr(e) + ";");
         functions.push_back(return_type + " " + function + "}\n");
         return_type = "void";
 
@@ -209,12 +203,11 @@ int main()
 
     type_overruling(int);
     type_overruling(float);
-    /// Open input file
+    /// Open input and input file
     freopen("input.hue", "r", stdin);
+    freopen("out.c", "w", stdout);
     /// Read and parse
     Expr root = read_instr(true);
-    /// Open output file
-    freopen("out.c", "w", stdout);
     /// Write all the functions
     std::string e = gen_expr(root);
     std::string o;
