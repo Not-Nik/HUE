@@ -44,6 +44,3 @@ Also they are the only feature HUE has that C doesn't.
 If you want to add custom code generation to HUE simply do so by adding an overruling for a specific statement name.
 An overruling is a function that takes an expression of type `Expr` and returns a string of type `std::string`. If you fell the urge
 to generate code that shouldn't be directly in-place like functions or structs, simply add a string to `functions`
-
-## Fun fact
-I think the clang bundled with Xcode can't compile this. Thanks Apple, great job.
