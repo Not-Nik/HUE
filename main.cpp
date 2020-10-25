@@ -3,27 +3,23 @@
 #include <vector>
 #include <iostream>
 
-bool Throw(const std::string & s)
-{ throw std::runtime_error(s); }
+bool Throw(const std::string & s) { throw std::runtime_error(s); }
 
 #define assert(cond) (cond ? true : Throw("Assertion failed; line " + std::to_string(lex_pos.l) + " column " + std::to_string(lex_pos.c)))
 #define match(s, r) (assert((r ? read() : t) == s) ? s : "")
-#define assert_do(c, d) ((assert(c) ? d : ""))
+#define assert_do(c, d) ((assert(c) ? d : nullptr))
 #define loop_exprs(d) for (auto & e : expr.exprs) d
 
 /// Structure used for all expressions
 /// This is the stuff the AST is made of
-struct Expr
-{
+struct Expr {
     bool nameless;
     std::string x;
     std::vector<Expr> exprs;
 
-    bool operator==(const Expr & o) const
-    { return nameless == o.nameless and x == o.x and exprs == o.exprs; }
+    bool operator==(const Expr & o) const { return nameless == o.nameless and x == o.x and exprs == o.exprs; }
 
-    bool operator!=(const Expr & o) const
-    { return !(this->operator==(o)); }
+    bool operator!=(const Expr & o) const { return !(this->operator==(o)); }
 };
 
 typedef std::function<std::string(Expr)> overruling;
@@ -40,20 +36,19 @@ std::map<std::string, overruling> overrulings;
 /// Total count of functions
 int function_counter = 0;
 
-struct {int l; int c;} lex_pos;
-
-std::string return_type = "void";
+struct {
+    int l;
+    int c;
+} lex_pos;
 
 // -------------------- Lexer --------------------
 
 /// Read character from input file
-char readChar()
-{
+char readChar() {
     char buffer[1];
     std::cin.read(buffer, 1);
     lex_pos.c++;
-    if (buffer[0] == '\n')
-    {
+    if (buffer[0] == '\n') {
         lex_pos.c = 0;
         lex_pos.l++;
     }
@@ -61,35 +56,28 @@ char readChar()
 }
 
 /// Read token from input file
-std::string read()
-{
+std::string read() {
     std::string token;
 
-    while (c == ' ' or c == '\t' or c == '\n' or c == ';')
-    {
+    while (c == ' ' or c == '\t' or c == '\n' or c == ';') {
         if (c == ';')
             while (c != '\n') readChar();
         readChar();
     }
 
     if (c < 0) return "";
-    else if (c == '"')
-    {
+    else if (c == '"') {
         token += c;
-        do
+        do {
             token += readChar();
-        while (c != '"');
+        } while (c != '"');
         readChar();
-    }
-    else
-        do
-        {
+    } else
+        do {
             if (stoppers.find(c) == std::string::npos)
                 token += c;
-            else
-            {
-                if (token.empty())
-                {
+            else {
+                if (token.empty()) {
                     token = {c};
                     readChar();
                 }
@@ -104,21 +92,18 @@ std::string read()
 Expr read_instr(bool);
 
 /// Read a value [primitives, strings or (do stuff)]
-Expr read_val(bool r)
-{
+Expr read_val(bool r) {
     if (r) read();
     if (t == "(") return read_instr(false);
-    return Expr{true, t, {}};
+    return Expr {true, t, {}};
 }
 
 /// Read an instruction [looks like this: (do stuff)]
-Expr read_instr(bool r)
-{
+Expr read_instr(bool r) {
     match("(", r);
     Expr expr = {.nameless = false, .x = read()};
 
-    while (true)
-    {
+    while (true) {
         read();
         if (t != ")") expr.exprs.push_back(read_val(false));
         else break;
@@ -129,17 +114,14 @@ Expr read_instr(bool r)
 // -------------------- Code Generator --------------------
 
 /// Generate c code for an expression
-std::string gen_expr(Expr expr)
-{
-    if (!expr.nameless)
-    {
+std::string gen_expr(Expr expr) {
+    if (!expr.nameless) {
         if (overrulings.count(expr.x))
             return overrulings[expr.x](expr);
         std::string call_l = expr.x + "(";
         loop_exprs(call_l += gen_expr(e) + (e != expr.exprs.back() ? ", " : ""));
         return call_l + ")";
-    }
-    else
+    } else
         return expr.x;
 }
 
@@ -150,7 +132,7 @@ std::string gen_expr(Expr expr)
 #define scope_overruling(name) overrulings.emplace(#name, [](Expr expr){ \
     std::string res = #name" (" + gen_expr(expr.exprs[0]) + "){"; \
     expr.exprs.erase(expr.exprs.begin()); \
-    loop_exprs(res += gen_expr(e) + ";"); \
+    loop_exprs(res += gen_expr(e) + ";\n"); \
     return res + "}"; \
 })
 
@@ -160,34 +142,28 @@ std::string gen_expr(Expr expr)
     return res; \
 })
 
-int main()
-{
-    overrulings.emplace("return", [](const Expr & expr)
-    {
-        return_type = assert_do(expr.exprs.size() == 2, expr.exprs[0].x);
-        std::string res = "return " + gen_expr(expr.exprs[1]);
-        return "return " + gen_expr(expr.exprs[1]);
+int main(int argc, const char ** argv) {
+    overrulings.emplace("return", [](const Expr & expr) {
+        std::string res = "return " + gen_expr(assert(expr.exprs.size() == 1) ? expr.exprs[0] : Expr());
+        return "return " + gen_expr(expr.exprs[0]);
     });
 
-    overrulings.emplace("set", [](Expr expr)
-    {
+    overrulings.emplace("set", [](Expr expr) {
         return assert_do(expr.exprs.size() == 2, expr.exprs[0].x + "=" + gen_expr(expr.exprs[1]));
     });
 
-    overrulings.emplace("include", [](Expr expr)
-    {
+    overrulings.emplace("include", [](Expr expr) {
         functions.push_back("#include " + expr.exprs[0].x + "\n");
         return assert_do(expr.exprs.size() == 1, "");
     });
 
-    overrulings.emplace("do", [](const Expr & expr)
-    {
+    overrulings.emplace("do", [](Expr expr) {
         std::string function_id = std::to_string(++function_counter);
-        std::string function = "f" + function_id + "()\n{";
+        std::string function = assert_do(expr.exprs.size() > 1, expr.exprs[0].x) + " f" + function_id + "() {\n";
+        expr.exprs.erase(expr.exprs.begin());
 
-        loop_exprs(function += gen_expr(e) + ";");
-        functions.push_back(return_type + " " + function + "}\n");
-        return_type = "void";
+        loop_exprs(function += gen_expr(e) + ";\n");
+        functions.push_back(function + "}\n");
 
         return "f" + function_id + "()";
     });
@@ -203,8 +179,8 @@ int main()
 
     type_overruling(int);
     type_overruling(float);
-    /// Open input and input file
-    freopen("input.hue", "r", stdin);
+    /// Open input and input file and pipe to stdin/out
+    freopen(assert(argc >= 2) ? argv[1] : nullptr, "r", stdin);
     freopen("out.c", "w", stdout);
     /// Read and parse
     Expr root = read_instr(true);

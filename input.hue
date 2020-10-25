@@ -1,14 +1,14 @@
-(do
+(do int
     (include "stdio.h")
     (puts "Hello there") ; Call function puts
     (int i) ; Create integer variable i
     (set i (add 1 2 3)) ; In C that would be i = 1 + 2 + 3;
-    (if (do ; as an if condition you can use a do statement. other languages call this a lambda
+    (if (do int ; in an if condition you can use a do statement. other languages call this a lambda
             (int x) ; Create integer variable x
             (set x 3) ; Set x to 3
-            (return int x) ; Return x. Effectively the if condition is now 3
+            (return x) ; Return x. Effectively the if condition is now 3
          )
         (puts "If works") ; Call puts inside the if statement
     )
-    (return int i) ; Return i
+    (return i) ; Return i
 )
